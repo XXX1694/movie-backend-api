@@ -33,10 +33,15 @@ func (u *UserUsecase) DeleteUser(id int) (int64, error) {
 	return u.repo.DeleteUser(id)
 }
 
+func (u *UserUsecase) CreateUserWithAudit(user modules.User) (int, error) {
+	return u.repo.CreateUserWithAudit(user)
+}
+
 type UserUsecaseInterface interface {
 	GetUsers() ([]modules.User, error)
 	GetUserByID(id int) (*modules.User, error)
 	CreateUser(user modules.User) (int, error)
+	CreateUserWithAudit(user modules.User) (int, error) // новый
 	UpdateUser(id int, user modules.User) error
 	DeleteUser(id int) (int64, error)
 }

@@ -35,7 +35,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/modules.User"
+                                "$ref": "#/definitions/golang_pkg_modules.User"
                             }
                         }
                     }
@@ -64,7 +64,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/modules.User"
+                            "$ref": "#/definitions/golang_pkg_modules.User"
                         }
                     }
                 ],
@@ -108,7 +108,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/modules.User"
+                            "$ref": "#/definitions/golang_pkg_modules.User"
                         }
                     },
                     "404": {
@@ -149,7 +149,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/modules.User"
+                            "$ref": "#/definitions/golang_pkg_modules.User"
                         }
                     }
                 ],
@@ -215,7 +215,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "modules.User": {
+        "golang_pkg_modules.User": {
             "type": "object",
             "properties": {
                 "age": {

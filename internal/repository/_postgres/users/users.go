@@ -21,7 +21,8 @@ func NewUserRepository(db *_postgres.Dialect) *Repository {
 
 func (r *Repository) GetUsers() ([]modules.User, error) {
 	var users []modules.User
-	err := r.db.DB.Select(&users, "SELECT id, name, email, age, created_at FROM users")
+	err := r.db.DB.Select(&users,
+		"SELECT id, name, email, age, created_at FROM users WHERE deleted_at IS NULL")
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +31,8 @@ func (r *Repository) GetUsers() ([]modules.User, error) {
 
 func (r *Repository) GetUserByID(id int) (*modules.User, error) {
 	var user modules.User
-	err := r.db.DB.Get(&user, "SELECT id, name, email, age, created_at FROM users WHERE id=$1", id)
+	err := r.db.DB.Get(&user,
+		"SELECT id, name, email, age, created_at FROM users WHERE id=$1 AND deleted_at IS NULL", id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user with id %d not found", id)
@@ -38,6 +40,19 @@ func (r *Repository) GetUserByID(id int) (*modules.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *Repository) DeleteUser(id int) (int64, error) {
+	result, err := r.db.DB.Exec(
+		"UPDATE users SET deleted_at=now() WHERE id=$1 AND deleted_at IS NULL", id)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete user: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return 0, fmt.Errorf("user with id %d does not exist or already deleted", id)
+	}
+	return rows, nil
 }
 
 func (r *Repository) CreateUser(user modules.User) (int, error) {
@@ -54,7 +69,7 @@ func (r *Repository) CreateUser(user modules.User) (int, error) {
 
 func (r *Repository) UpdateUser(id int, user modules.User) error {
 	result, err := r.db.DB.Exec(
-		"UPDATE users SET name=$1, email=$2, age=$3 WHERE id=$4",
+		"UPDATE users SET name=$1, email=$2, age=$3 WHERE id=$4 AND deleted_at IS NULL",
 		user.Name, user.Email, user.Age, id,
 	)
 	if err != nil {
@@ -67,14 +82,33 @@ func (r *Repository) UpdateUser(id int, user modules.User) error {
 	return nil
 }
 
-func (r *Repository) DeleteUser(id int) (int64, error) {
-	result, err := r.db.DB.Exec("DELETE FROM users WHERE id=$1", id)
+func (r *Repository) CreateUserWithAudit(user modules.User) (int, error) {
+	tx, err := r.db.DB.Begin()
 	if err != nil {
-		return 0, fmt.Errorf("failed to delete user: %w", err)
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return 0, fmt.Errorf("user with id %d does not exist", id)
+	defer tx.Rollback()
+
+	var id int
+	err = tx.QueryRow(
+		"INSERT INTO users (name, email, age) VALUES ($1, $2, $3) RETURNING id",
+		user.Name, user.Email, user.Age,
+	).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create user: %w", err)
 	}
-	return rows, nil
+
+	_, err = tx.Exec(
+		"INSERT INTO audit_log (user_id, action) VALUES ($1, $2)",
+		id, "CREATE",
+	)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create audit log: %w", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return id, nil
 }

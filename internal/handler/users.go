@@ -126,3 +126,28 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]int64{"rows_affected": rows})
 }
+
+// CreateUserWithAudit godoc
+// @Summary Create user with audit log
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body modules.User true "User"
+// @Success 201 {object} map[string]int
+// @Router /users/audit [post]
+// @Security ApiKeyAuth
+func (h *UserHandler) CreateUserWithAudit(w http.ResponseWriter, r *http.Request) {
+	var user modules.User
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	id, err := h.usecase.CreateUserWithAudit(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]int{"id": id})
+}

@@ -10,6 +10,7 @@ type UserRepository interface {
 	GetUsers() ([]modules.User, error)
 	GetUserByID(id int) (*modules.User, error)
 	CreateUser(user modules.User) (int, error)
+	CreateUserWithAudit(user modules.User) (int, error)
 	UpdateUser(id int, user modules.User) error
 	DeleteUser(id int) (int64, error)
 }

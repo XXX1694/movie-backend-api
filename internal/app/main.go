@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	_ "golang/docs"
 	"golang/internal/handler"
 	"golang/internal/middleware"
 	"golang/internal/repository"
@@ -34,7 +35,9 @@ func Run() {
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	r := mux.NewRouter()
-	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
+	r.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+	))
 	r.Use(middleware.LoggingMiddleware)
 	r.Use(middleware.AuthMiddleware)
 
@@ -48,6 +51,7 @@ func Run() {
 	r.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
 	r.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
 	r.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
+	r.HandleFunc("/users/audit", userHandler.CreateUserWithAudit).Methods("POST")
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

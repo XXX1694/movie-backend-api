@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  modules.User:
+  golang_pkg_modules.User:
     properties:
       age:
         type: integer
@@ -29,7 +29,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/modules.User'
+              $ref: '#/definitions/golang_pkg_modules.User'
             type: array
       security:
       - ApiKeyAuth: []
@@ -45,7 +45,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/modules.User'
+          $ref: '#/definitions/golang_pkg_modules.User'
       produces:
       - application/json
       responses:
@@ -100,7 +100,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/modules.User'
+            $ref: '#/definitions/golang_pkg_modules.User'
         "404":
           description: not found
           schema:
@@ -124,7 +124,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/modules.User'
+          $ref: '#/definitions/golang_pkg_modules.User'
       produces:
       - application/json
       responses:
