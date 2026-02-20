@@ -19,7 +19,6 @@ func NewUserRepository(db *_postgres.Dialect) *Repository {
 	return &Repository{db: db, executionTimeout: time.Second * 5}
 }
 
-// GET ALL
 func (r *Repository) GetUsers() ([]modules.User, error) {
 	var users []modules.User
 	err := r.db.DB.Select(&users, "SELECT id, name, email, age, created_at FROM users")
@@ -29,7 +28,6 @@ func (r *Repository) GetUsers() ([]modules.User, error) {
 	return users, nil
 }
 
-// GET BY ID
 func (r *Repository) GetUserByID(id int) (*modules.User, error) {
 	var user modules.User
 	err := r.db.DB.Get(&user, "SELECT id, name, email, age, created_at FROM users WHERE id=$1", id)
@@ -42,7 +40,6 @@ func (r *Repository) GetUserByID(id int) (*modules.User, error) {
 	return &user, nil
 }
 
-// CREATE
 func (r *Repository) CreateUser(user modules.User) (int, error) {
 	var id int
 	err := r.db.DB.QueryRow(
@@ -55,7 +52,6 @@ func (r *Repository) CreateUser(user modules.User) (int, error) {
 	return id, nil
 }
 
-// UPDATE
 func (r *Repository) UpdateUser(id int, user modules.User) error {
 	result, err := r.db.DB.Exec(
 		"UPDATE users SET name=$1, email=$2, age=$3 WHERE id=$4",
@@ -71,7 +67,6 @@ func (r *Repository) UpdateUser(id int, user modules.User) error {
 	return nil
 }
 
-// DELETE
 func (r *Repository) DeleteUser(id int) (int64, error) {
 	result, err := r.db.DB.Exec("DELETE FROM users WHERE id=$1", id)
 	if err != nil {

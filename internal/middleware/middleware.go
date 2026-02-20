@@ -3,15 +3,18 @@ package middleware
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
-const validAPIKey = "my-secret-key"
-
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		validKey := os.Getenv("API_KEY")
+		if validKey == "" {
+			validKey = "my-secret-key"
+		}
 		key := r.Header.Get("X-API-KEY")
-		if key != validAPIKey {
+		if key != validKey {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
