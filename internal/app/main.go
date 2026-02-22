@@ -5,8 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
+	httpSwagger "github.com/swaggo/http-swagger"
 	_ "golang/docs"
 	"golang/internal/handler"
 	"golang/internal/middleware"
@@ -14,10 +19,6 @@ import (
 	_postgres "golang/internal/repository/_postgres"
 	"golang/internal/usecase"
 	"golang/pkg/modules"
-
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func Run() {
@@ -48,13 +49,38 @@ func Run() {
 
 	r.HandleFunc("/users", userHandler.GetUsers).Methods("GET")
 	r.HandleFunc("/users/{id}", userHandler.GetUserByID).Methods("GET")
+	r.HandleFunc("/users/audit", userHandler.CreateUserWithAudit).Methods("POST")
 	r.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
 	r.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
 	r.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
-	r.HandleFunc("/users/audit", userHandler.CreateUserWithAudit).Methods("POST")
 
-	log.Println("Server running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
+	}
+
+	// Запуск сервера в горутине
+	go func() {
+		log.Println("Server running on :8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	// Ждём сигнал остановки
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server stopped gracefully")
 }
 
 func initPostgreConfig() *modules.PostgreConfig {
@@ -63,7 +89,7 @@ func initPostgreConfig() *modules.PostgreConfig {
 		Port:        getEnv("DB_PORT", "5432"),
 		Username:    getEnv("DB_USERNAME", "postgres"),
 		Password:    getEnv("DB_PASSWORD", ""),
-		DBName:      getEnv("DB_NAME", "mydb"),
+		DBName:      getEnv("DB_NAME", "mybd"),
 		SSLMode:     getEnv("DB_SSLMODE", "disable"),
 		ExecTimeout: 5 * time.Second,
 	}
