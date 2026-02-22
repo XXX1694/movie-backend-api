@@ -27,7 +27,21 @@ func NewUserHandler(uc usecase.UserUsecaseInterface) *UserHandler {
 // @Router /users [get]
 // @Security ApiKeyAuth
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.usecase.GetUsers()
+	limit := 10
+	offset := 0
+
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil {
+			limit = v
+		}
+	}
+	if o := r.URL.Query().Get("offset"); o != "" {
+		if v, err := strconv.Atoi(o); err == nil {
+			offset = v
+		}
+	}
+
+	users, err := h.usecase.GetUsers(limit, offset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -19,10 +19,11 @@ func NewUserRepository(db *_postgres.Dialect) *Repository {
 	return &Repository{db: db, executionTimeout: time.Second * 5}
 }
 
-func (r *Repository) GetUsers() ([]modules.User, error) {
+func (r *Repository) GetUsers(limit, offset int) ([]modules.User, error) {
 	var users []modules.User
 	err := r.db.DB.Select(&users,
-		"SELECT id, name, email, age, created_at FROM users WHERE deleted_at IS NULL")
+		"SELECT id, name, email, age, created_at FROM users WHERE deleted_at IS NULL LIMIT $1 OFFSET $2",
+		limit, offset)
 	if err != nil {
 		return nil, err
 	}
