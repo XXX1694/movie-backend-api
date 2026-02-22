@@ -19,6 +19,7 @@ import (
 	"golang/internal/repository"
 	_postgres "golang/internal/repository/_postgres"
 	"golang/internal/usecase"
+	"golang/internal/worker"
 	"golang/pkg/modules"
 )
 
@@ -33,6 +34,8 @@ func Run() {
 	dbConfig := initPostgreConfig()
 	_postgre := _postgres.NewPGXDialect(ctx, dbConfig)
 	repos := repository.NewRepositories(_postgre)
+
+	worker.StartUserCountWorker(repos)
 
 	redisAddr := getEnv("REDIS_ADDR", "localhost:6379")
 	redisCache := cache.NewRedisCache(redisAddr)
