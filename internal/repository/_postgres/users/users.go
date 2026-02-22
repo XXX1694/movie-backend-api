@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	_postgres "golang/internal/repository/_postgres"
 	"golang/pkg/modules"
 )
@@ -57,10 +58,15 @@ func (r *Repository) DeleteUser(id int) (int64, error) {
 }
 
 func (r *Repository) CreateUser(user modules.User) (int, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, fmt.Errorf("failed to hash password: %w", err)
+	}
+
 	var id int
-	err := r.db.DB.QueryRow(
-		"INSERT INTO users (name, email, age) VALUES ($1, $2, $3) RETURNING id",
-		user.Name, user.Email, user.Age,
+	err = r.db.DB.QueryRow(
+		"INSERT INTO users (name, email, age, password) VALUES ($1, $2, $3, $4) RETURNING id",
+		user.Name, user.Email, user.Age, string(hashedPassword),
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create user: %w", err)

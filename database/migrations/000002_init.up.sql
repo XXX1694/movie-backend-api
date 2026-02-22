@@ -3,6 +3,7 @@ create table if not exists users (
                                      name varchar(255) not null,
     email varchar(255),
     age int,
+    password varchar(255),
     created_at timestamp default now(),
     deleted_at timestamp
     );
