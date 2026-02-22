@@ -1,16 +1,19 @@
 package usecase
 
 import (
+	"context"
+	"golang/internal/cache"
 	"golang/internal/repository"
 	"golang/pkg/modules"
 )
 
 type UserUsecase struct {
-	repo repository.UserRepository
+	repo  repository.UserRepository
+	cache *cache.RedisCache
 }
 
-func NewUserUsecase(repo repository.UserRepository) *UserUsecase {
-	return &UserUsecase{repo: repo}
+func NewUserUsecase(repo repository.UserRepository, cache *cache.RedisCache) *UserUsecase {
+	return &UserUsecase{repo: repo, cache: cache}
 }
 
 func (u *UserUsecase) GetUsers(limit, offset int) ([]modules.User, error) {
@@ -18,23 +21,43 @@ func (u *UserUsecase) GetUsers(limit, offset int) ([]modules.User, error) {
 }
 
 func (u *UserUsecase) GetUserByID(id int) (*modules.User, error) {
-	return u.repo.GetUserByID(id)
+	ctx := context.Background()
+
+	// Проверяем кэш
+	cached, err := u.cache.GetUser(ctx, id)
+	if err == nil {
+		return cached, nil
+	}
+
+	// Берём из БД
+	user, err := u.repo.GetUserByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Сохраняем в кэш
+	u.cache.SetUser(ctx, user)
+	return user, nil
 }
 
 func (u *UserUsecase) CreateUser(user modules.User) (int, error) {
 	return u.repo.CreateUser(user)
 }
 
+func (u *UserUsecase) CreateUserWithAudit(user modules.User) (int, error) {
+	return u.repo.CreateUserWithAudit(user)
+}
+
 func (u *UserUsecase) UpdateUser(id int, user modules.User) error {
+	// Инвалидируем кэш
+	u.cache.DeleteUser(context.Background(), id)
 	return u.repo.UpdateUser(id, user)
 }
 
 func (u *UserUsecase) DeleteUser(id int) (int64, error) {
+	// Инвалидируем кэш
+	u.cache.DeleteUser(context.Background(), id)
 	return u.repo.DeleteUser(id)
-}
-
-func (u *UserUsecase) CreateUserWithAudit(user modules.User) (int, error) {
-	return u.repo.CreateUserWithAudit(user)
 }
 
 type UserUsecaseInterface interface {

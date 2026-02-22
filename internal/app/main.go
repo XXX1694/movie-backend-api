@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	httpSwagger "github.com/swaggo/http-swagger"
 	_ "golang/docs"
+	"golang/internal/cache"
 	"golang/internal/handler"
 	"golang/internal/middleware"
 	"golang/internal/repository"
@@ -32,7 +33,11 @@ func Run() {
 	dbConfig := initPostgreConfig()
 	_postgre := _postgres.NewPGXDialect(ctx, dbConfig)
 	repos := repository.NewRepositories(_postgre)
-	userUsecase := usecase.NewUserUsecase(repos.UserRepository)
+
+	redisAddr := getEnv("REDIS_ADDR", "localhost:6379")
+	redisCache := cache.NewRedisCache(redisAddr)
+
+	userUsecase := usecase.NewUserUsecase(repos.UserRepository, redisCache)
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	r := mux.NewRouter()
@@ -59,7 +64,6 @@ func Run() {
 		Handler: r,
 	}
 
-	// Запуск сервера в горутине
 	go func() {
 		log.Println("Server running on :8080")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -67,7 +71,6 @@ func Run() {
 		}
 	}()
 
-	// Ждём сигнал остановки
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
