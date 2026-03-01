@@ -1,4 +1,4 @@
-.PHONY: up down build restart logs ps clean test
+.PHONY: up down build restart logs ps clean test scale
 
 # Launch everything
 up:
@@ -32,3 +32,7 @@ clean:
 # Run Go tests
 test:
 	go test ./...
+
+# Scale app to N instances (usage: make scale N=3)
+scale:
+	docker compose up --build -d --scale app=$(N)
