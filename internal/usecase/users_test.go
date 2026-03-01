@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"golang/internal/cache"
 	"golang/internal/mocks"
 	"golang/internal/usecase"
 	"golang/pkg/modules"
@@ -11,13 +12,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func newTestUsecase(repo *mocks.UserRepository) *usecase.UserUsecase {
+	// Use a dummy Redis address — cache calls will fail gracefully and fall through to repo
+	redisCache := cache.NewRedisCache("localhost:63790")
+	return usecase.NewUserUsecase(repo, redisCache)
+}
+
 func TestGetUsers(t *testing.T) {
 	mockRepo := new(mocks.UserRepository)
 	mockRepo.On("GetUsers", 10, 0).Return([]modules.User{
 		{ID: 1, Name: "John Doe", Email: "john@test.com", Age: 25},
 	}, nil)
 
-	uc := usecase.NewUserUsecase(mockRepo)
+	uc := newTestUsecase(mockRepo)
 	users, err := uc.GetUsers(10, 0)
 
 	assert.NoError(t, err)
@@ -32,7 +39,7 @@ func TestGetUserByID_Success(t *testing.T) {
 		ID: 1, Name: "John Doe", Email: "john@test.com", Age: 25,
 	}, nil)
 
-	uc := usecase.NewUserUsecase(mockRepo)
+	uc := newTestUsecase(mockRepo)
 	user, err := uc.GetUserByID(1)
 
 	assert.NoError(t, err)
@@ -44,7 +51,7 @@ func TestGetUserByID_NotFound(t *testing.T) {
 	mockRepo := new(mocks.UserRepository)
 	mockRepo.On("GetUserByID", 999).Return(nil, fmt.Errorf("user with id 999 not found"))
 
-	uc := usecase.NewUserUsecase(mockRepo)
+	uc := newTestUsecase(mockRepo)
 	user, err := uc.GetUserByID(999)
 
 	assert.Error(t, err)
@@ -57,7 +64,7 @@ func TestCreateUser(t *testing.T) {
 	newUser := modules.User{Name: "Alice", Email: "alice@test.com", Age: 30}
 	mockRepo.On("CreateUser", newUser).Return(1, nil)
 
-	uc := usecase.NewUserUsecase(mockRepo)
+	uc := newTestUsecase(mockRepo)
 	id, err := uc.CreateUser(newUser)
 
 	assert.NoError(t, err)
@@ -69,7 +76,7 @@ func TestDeleteUser_NotFound(t *testing.T) {
 	mockRepo := new(mocks.UserRepository)
 	mockRepo.On("DeleteUser", 999).Return(int64(0), fmt.Errorf("user with id 999 does not exist"))
 
-	uc := usecase.NewUserUsecase(mockRepo)
+	uc := newTestUsecase(mockRepo)
 	rows, err := uc.DeleteUser(999)
 
 	assert.Error(t, err)

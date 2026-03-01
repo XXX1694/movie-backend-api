@@ -43,6 +43,9 @@ func Run() {
 	userUsecase := usecase.NewUserUsecase(repos.UserRepository, redisCache)
 	userHandler := handler.NewUserHandler(userUsecase)
 
+	movieUsecase := usecase.NewMovieUsecase(repos.MovieRepository)
+	movieHandler := handler.NewMovieHandler(movieUsecase)
+
 	r := mux.NewRouter()
 	r.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
@@ -61,6 +64,12 @@ func Run() {
 	r.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
 	r.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
 	r.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
+
+	r.HandleFunc("/movies", movieHandler.GetMovies).Methods("GET")
+	r.HandleFunc("/movies/{id}", movieHandler.GetMovieByID).Methods("GET")
+	r.HandleFunc("/movies", movieHandler.CreateMovie).Methods("POST")
+	r.HandleFunc("/movies/{id}", movieHandler.UpdateMovie).Methods("PUT")
+	r.HandleFunc("/movies/{id}", movieHandler.DeleteMovie).Methods("DELETE")
 
 	srv := &http.Server{
 		Addr:    ":8080",
