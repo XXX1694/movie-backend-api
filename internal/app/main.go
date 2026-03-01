@@ -87,12 +87,19 @@ func Run() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	log.Println("Shutting down gracefully...")
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	// Close DB connection
+	if err := _postgre.DB.Close(); err != nil {
+		log.Printf("Error closing DB connection: %v", err)
+	} else {
+		log.Println("Database connection closed")
 	}
 
 	log.Println("Server stopped gracefully")
